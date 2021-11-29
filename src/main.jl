@@ -7,6 +7,8 @@ main:
 
 include("../src/inputs.jl")
 
+
+# first try, not working
 function apx(index, row, parameters, b)
     # solves for x_index on row_index with parameters {x_1, ..., x_MATRIX_DIMENSION}
     # lhs is x_index
@@ -30,17 +32,18 @@ function jacobi(R, D_, parameters, b)
 end
 
 
-function gauss_seidel(U, L, parameters, b)
-    return inv(L) * ( b - U * parameters)
+function gauss_seidel(U, L_, parameters, b)
+    return L_ * ( b - U * parameters)
 end
 
-# using PlotlyJS
 function make_graphs(jc_e, gs_e, index)
     gamma = [5.0, 2.0, 0.5]
+    # returned tuple from solve
     jc_e = jc_e[3]
     gs_e = gs_e[4]
     println(jc_e)
     println(gs_e)
+    # number of iterations
     its = length(gs_e)
     if length(jc_e) > length(gs_e) its = length(jc_e) end
     p = plot([
@@ -55,12 +58,12 @@ function solve(index, calculation_method="gs", verbose=true)
     jc = false
     gs = false
     if calculation_method == "jacobi" || calculation_method == "gs"
-        if calculation_method == "jacobi" jc = true
-            else gs = true end
-    else
-        throw(ArgumentError("Calculation method can be one of: \"jacobi\", \"gs\"."))
-    end
-    # A matrix of constant parameters, b is rhs vector
+        if calculation_method == "jacobi"
+             jc = true
+        else gs = true end
+    else throw(ArgumentError("Calculation method can be one of: \"jacobi\", \"gs\".")) end
+
+    # A matrix of constant parameters, b is vector from A*x=b
     A, b = gimme_gamma(index)
     parameters = zeros(Float64, MATRIX_DIMENSION)
     flag = true
@@ -73,9 +76,10 @@ function solve(index, calculation_method="gs", verbose=true)
         D_ = inv(D_)
     end
     if gs
-        method_name = "Gauss Seidel"
+        method_name = "Gauss-Seidel"
         A, b = gimme_gamma(index)
         U, L = lowerTmatrix(A)
+        L_ = inv(L)
     end
 
     if verbose println("Calculating using "*method_name*".") end
@@ -84,10 +88,11 @@ function solve(index, calculation_method="gs", verbose=true)
     bottom = 0
     gs_e = []
     jc_e = []
+    # set upper limit of iterations to 10 000
     while flag && iterations < 10^4
         iterations += 1
         if jc parameters = jacobi(R, D_, parameters, b) end
-        if gs parameters = gauss_seidel(U, L, parameters, b) end
+        if gs parameters = gauss_seidel(U, L_, parameters, b) end
 
         # Quality of iteration using Frobenius norm (p=2)
         top = norm(A*parameters - b)
@@ -121,26 +126,41 @@ function solve(index, calculation_method="gs", verbose=true)
     return norm_e, iterations, jc_e, gs_e
 end
 
-
-function analyze(e)
-    for method in keys(e)
-        println(method)
-        for idx in keys(e[method])
-            println(idx, "\t", e[method][idx])
-        end
-    end
-end
-
+# select one method
 calculation_method = ["jacobi", "gs"]
-e = Dict()
-for cm in calculation_method
-    e[cm] = Dict()
-    for i in 1:3
-        e[cm][i] = solve(i, cm, false)
-    end
-end
+cm = "jacobi"
+# select gamma index
+gamma_index = [1, 2, 3]
+index = 1
+# choose if you want more detailed output
+verbose = true
+# norm_e is final value of criterial function (eucl. norm
+# ||Ax_ - b|| / || b ||
+# iterations is number of iterations
+# jc_e, resp. gs_e, is a list of criterial function values for each iteration
+norm_e, iterations, jc_e, gs_e = solve(index, cm, verbose)
+
+
+
+### REMOVE comment for making graphs
+# using PlotlyJS
+# e = Dict()
+# for cm in calculation_method
+#     e[cm] = Dict()
+#     for i in 1:3
+#         e[cm][i] = solve(i, cm, false)
+#     end
+# end
+
 # for i in 1:3
 #     make_graphs(e["jacobi"][i], e["gs"][i], i)
 # end
-analyze(e)
+
+# for method in keys(e)
+#     println(method)
+#     for idx in keys(e[method])
+#         println(idx, "\t", e[method][idx])
+#     end
+# end
+
 

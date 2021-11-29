@@ -6,7 +6,7 @@ inputs:
 =#
 
 using LinearAlgebra
-const  MATRIX_DIMENSION = 23
+const  MATRIX_DIMENSION = 20
 
 
 function gimme_gamma(index)
@@ -40,6 +40,7 @@ end
 function lowerTmatrix(A)
     n, m = size(A)
     if n != m throw(DomainError(index, "Matrix is not symmetric.")) end
+    # prepare Upper Triangular and Lower Triangula matrices
     U = zeros(Float64, (n, n))
     L = zeros(Float64, (n, n))
     for row in 1:n
@@ -51,5 +52,6 @@ function lowerTmatrix(A)
             end
         end
     end
+    # A = U + L
     return U, L
 end
