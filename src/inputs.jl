@@ -6,7 +6,7 @@ inputs:
 =#
 
 using LinearAlgebra
-const  MATRIX_DIMENSION = 20
+const  MATRIX_DIMENSION = 23
 
 
 function gimme_gamma(index)
