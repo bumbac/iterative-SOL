@@ -22,19 +22,34 @@ function gimme_gamma(index)
     end
     gamma = [5.0, 2.0, 0.5]
 
+    # gamma value on diagonal
     dv = fill(gamma[index], MATRIX_DIMENSION)
+    # -1 on sides of diagonal
     ev = fill(-1.0, MATRIX_DIMENSION - 1)
-    Au = Bidiagonal(dv, ev, :U)
-    Av = Bidiagonal(zeros(Float64, MATRIX_DIMENSION), ev, :L)
-    A = Au + Av
-
-    b = zeros(Float64, MATRIX_DIMENSION)
-    for i in 1:MATRIX_DIMENSION
-        b[i] = gamma[index] - 2
-    end
-    # first and last element in b vector is only gamma - 1
+    # other positions are zero
+    A = SymTridiagonal(dv, ev)
+    # b is filled with gamma - 2
+    b = fill(gamma[index] - 2, MATRIX_DIMENSION)
+    # first and last element in b vector is gamma - 1
     b[1] = gamma[index] - 1
     b[MATRIX_DIMENSION] = gamma[index] - 1
     return A, b
 end
 
+
+function lowerTmatrix(A)
+    n, m = size(A)
+    if n != m throw(DomainError(index, "Matrix is not symmetric.")) end
+    U = zeros(Float64, (n, n))
+    L = zeros(Float64, (n, n))
+    for row in 1:n
+        for column in 1:n
+            if row >= column
+                L[row, column] = A[row, column]
+            else
+                U[row, column] = A[row, column]
+            end
+        end
+    end
+    return U, L
+end

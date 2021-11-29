@@ -25,7 +25,7 @@ function apx(index, row, parameters, b)
 end
 
 
-function apx2(R, D_, parameters, b)
+function jacobi(R, D_, parameters, b)
     return D_ * ( b - R * parameters)
 end
 
@@ -41,7 +41,7 @@ function solve(index)
 
     while flag
         count += 1
-        parameters = apx2(R, D_, parameters, b)
+        parameters = jacobi(R, D_, parameters, b)
         # Quality of iteration using Frobenius norm (p=2)
         top = norm(A*parameters - b)
         bottom = norm(b)
@@ -54,7 +54,38 @@ function solve(index)
     println("x: ",parameters)
     println("b: ", b)
     e = abs.(A*parameters - b)
-    println(round.(e; digits=5))
+    println(round.(e; digits=7))
 end
 
-for i in 1:3 solve(i) end
+# for i in 1:3 solve(i) end
+
+function gauss_seidel(U, L, parameters, b)
+    return inv(L) * ( b - U * parameters)
+end
+
+function solve_gaus(index)
+    A, b = gimme_gamma(index)
+    U, L = lowerTmatrix(A)
+
+    parameters = zeros(Float64, MATRIX_DIMENSION)
+    flag = true
+    count = 0
+    while flag
+        count += 1
+        parameters = gauss_seidel(U, L, parameters, b)
+        # Quality of iteration using Frobenius norm (p=2)
+        top = norm(A*parameters - b)
+        bottom = norm(b)
+        if top / bottom < parse(Float64, "10e-6") flag = false end
+        # solution did not converge
+        if isnan(top / bottom) break end
+    end
+    println("COUNT:", count)
+    println("SOLUTION: ", A*parameters)
+    println("x: ",parameters)
+    println("b: ", b)
+    e = abs.(A*parameters - b)
+    println(round.(e; digits=7))
+end
+
+solve_gaus(1)
