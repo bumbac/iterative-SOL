@@ -29,63 +29,118 @@ function jacobi(R, D_, parameters, b)
     return D_ * ( b - R * parameters)
 end
 
-function solve(index)
-    # A matrix of constant parameters, b is rhs vector
-    A, b = gimme_gamma(index)
-    parameters = zeros(Float64, MATRIX_DIMENSION)
-    flag = true
-    count = 0
-    D_ = Diagonal(A)
-    R = A - D_
-    D_ = inv(D_)
-
-    while flag
-        count += 1
-        parameters = jacobi(R, D_, parameters, b)
-        # Quality of iteration using Frobenius norm (p=2)
-        top = norm(A*parameters - b)
-        bottom = norm(b)
-        if top / bottom < parse(Float64, "10e-6") flag = false end
-        # solution did not converge
-        if isnan(top / bottom) break end
-    end
-    println("COUNT:", count)
-    println("SOLUTION: ", A*parameters)
-    println("x: ",parameters)
-    println("b: ", b)
-    e = abs.(A*parameters - b)
-    println(round.(e; digits=7))
-end
-
-# for i in 1:3 solve(i) end
 
 function gauss_seidel(U, L, parameters, b)
     return inv(L) * ( b - U * parameters)
 end
 
-function solve_gaus(index)
-    A, b = gimme_gamma(index)
-    U, L = lowerTmatrix(A)
+# using PlotlyJS
+function make_graphs(jc_e, gs_e, index)
+    gamma = [5.0, 2.0, 0.5]
+    jc_e = jc_e[3]
+    gs_e = gs_e[4]
+    println(jc_e)
+    println(gs_e)
+    its = length(gs_e)
+    if length(jc_e) > length(gs_e) its = length(jc_e) end
+    p = plot([
+        scatter(x=1:its, y=jc_e, mode="lines", name="Jacobi", color=:red),
+        scatter(x=1:its, y=gs_e, mode="marker", name="Gauss-Seidel", color=:blue)],
+        Layout(title="Norm error for gamma "*string(gamma[index]), yaxis_title="Norm error", xaxis_title="Number of iterations"))
+    savefig(p, string(index)*"_.png")
 
+end
+
+function solve(index, calculation_method="gs", verbose=true)
+    jc = false
+    gs = false
+    if calculation_method == "jacobi" || calculation_method == "gs"
+        if calculation_method == "jacobi" jc = true
+            else gs = true end
+    else
+        throw(ArgumentError("Calculation method can be one of: \"jacobi\", \"gs\"."))
+    end
+    # A matrix of constant parameters, b is rhs vector
+    A, b = gimme_gamma(index)
     parameters = zeros(Float64, MATRIX_DIMENSION)
     flag = true
-    count = 0
-    while flag
-        count += 1
-        parameters = gauss_seidel(U, L, parameters, b)
+    iterations = 0
+
+    if jc
+        method_name = "Jacobi"
+        D_ = Diagonal(A)
+        R = A - D_
+        D_ = inv(D_)
+    end
+    if gs
+        method_name = "Gauss Seidel"
+        A, b = gimme_gamma(index)
+        U, L = lowerTmatrix(A)
+    end
+
+    if verbose println("Calculating using "*method_name*".") end
+
+    top = 0
+    bottom = 0
+    gs_e = []
+    jc_e = []
+    while flag && iterations < 10^4
+        iterations += 1
+        if jc parameters = jacobi(R, D_, parameters, b) end
+        if gs parameters = gauss_seidel(U, L, parameters, b) end
+
         # Quality of iteration using Frobenius norm (p=2)
         top = norm(A*parameters - b)
         bottom = norm(b)
         if top / bottom < parse(Float64, "10e-6") flag = false end
         # solution did not converge
+        if verbose
+            e = abs.(A*parameters - b)
+            println("Iteration: "*string(iterations)*", error: ", round(top / bottom; digits=7))
+        end
+        if jc push!(jc_e, top/bottom)
+        else push!(gs_e, top/bottom) end
         if isnan(top / bottom) break end
     end
-    println("COUNT:", count)
-    println("SOLUTION: ", A*parameters)
-    println("x: ",parameters)
-    println("b: ", b)
-    e = abs.(A*parameters - b)
-    println(round.(e; digits=7))
+    norm_e = top / bottom
+    if isnan(norm_e)
+        println("\n\tCALCULATION DID NOT CONVERGE after "*string(iterations)*" iterations.\n")
+        return -1, -1, -1, -1
+    end
+    if verbose
+        println("Iterations:", iterations)
+        println("SOLUTION x: ",parameters)
+        println("CALCULATED RESULT A*x: ", round.(A*parameters; digits=3))
+        println("GIVEN RESULT b: ", b)
+        e = abs.(A*parameters - b)
+        println("Calculated error: ", round.(e; digits=7))
+    end
+    if ! verbose println("CALCULATED RESULT A*x: ", round.(A*parameters; digits=3)) end
+    println("Normative error: ", norm_e)
+    println()
+    return norm_e, iterations, jc_e, gs_e
 end
 
-solve_gaus(1)
+
+function analyze(e)
+    for method in keys(e)
+        println(method)
+        for idx in keys(e[method])
+            println(idx, "\t", e[method][idx])
+        end
+    end
+end
+
+calculation_method = ["jacobi", "gs"]
+e = Dict()
+for cm in calculation_method
+    e[cm] = Dict()
+    for i in 1:3
+        e[cm][i] = solve(i, cm, false)
+    end
+end
+# for i in 1:3
+#     make_graphs(e["jacobi"][i], e["gs"][i], i)
+# end
+analyze(e)
+
