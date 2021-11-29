@@ -24,34 +24,37 @@ function apx(index, row, parameters, b)
     return sum
 end
 
-function solve()
+
+function apx2(R, D_, parameters, b)
+    return D_ * ( b - R * parameters)
+end
+
+function solve(index)
     # A matrix of constant parameters, b is rhs vector
-    A, b = gimme_gamma(1)
-    prev_parameters = zeros(Float64, MATRIX_DIMENSION)
-    next_parameters = zeros(Float64, MATRIX_DIMENSION)
+    A, b = gimme_gamma(index)
+    parameters = zeros(Float64, MATRIX_DIMENSION)
     flag = true
     count = 0
-    println(A)
-    println(b)
+    D_ = Diagonal(A)
+    R = A - D_
+    D_ = inv(D_)
+
     while flag
         count += 1
-        prev_parameters = next_parameters
-        for index in 1:MATRIX_DIMENSION
-            row = A[index, :]
-            # calculate x_index
-            next_parameters[index] = apx(index, row, prev_parameters, b)
-        end
+        parameters = apx2(R, D_, parameters, b)
         # Quality of iteration using Frobenius norm (p=2)
-        top = norm(A*next_parameters - b)
+        top = norm(A*parameters - b)
         bottom = norm(b)
         if top / bottom < parse(Float64, "10e-6") flag = false end
         # solution did not converge
         if isnan(top / bottom) break end
     end
     println("COUNT:", count)
-    println("SOLUTION: ", A*next_parameters)
-    println("x: ",next_parameters)
+    println("SOLUTION: ", A*parameters)
+    println("x: ",parameters)
     println("b: ", b)
+    e = abs.(A*parameters - b)
+    println(round.(e; digits=5))
 end
 
-solve()
+for i in 1:3 solve(i) end

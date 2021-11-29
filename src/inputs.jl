@@ -20,10 +20,14 @@ function gimme_gamma(index)
     if !isa(index, Integer) || index < 1 || index > 3
         throw(DomainError(index, "Gamma can be only 5, 2, 0.5 with respective indices 1, 2, 3."))
     end
-    gamma = [5, 2, 0.5]
-    A = Array{Float64}(undef, MATRIX_DIMENSION, MATRIX_DIMENSION)
-    fill!(A, -1)
-    A[diagind(A)] .= gamma[index]
+    gamma = [5.0, 2.0, 0.5]
+
+    dv = fill(gamma[index], MATRIX_DIMENSION)
+    ev = fill(-1.0, MATRIX_DIMENSION - 1)
+    Au = Bidiagonal(dv, ev, :U)
+    Av = Bidiagonal(zeros(Float64, MATRIX_DIMENSION), ev, :L)
+    A = Au + Av
+
     b = zeros(Float64, MATRIX_DIMENSION)
     for i in 1:MATRIX_DIMENSION
         b[i] = gamma[index] - 2
