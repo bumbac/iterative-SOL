@@ -89,7 +89,7 @@ function solve(index, calculation_method="gs", verbose=true)
     gs_e = []
     jc_e = []
     # set upper limit of iterations to 10 000
-    while flag && iterations < 10^4
+    while flag
         iterations += 1
         if jc parameters = jacobi(R, D_, parameters, b) end
         if gs parameters = gauss_seidel(U, L_, parameters, b) end
@@ -97,14 +97,14 @@ function solve(index, calculation_method="gs", verbose=true)
         # Quality of iteration using Frobenius norm (p=2)
         top = norm(A*parameters - b)
         bottom = norm(b)
-        if top / bottom < parse(Float64, "10e-6") flag = false end
-        # solution did not converge
+        if top / bottom < parse(Float64, "10e-7") flag = false end
         if verbose
             e = abs.(A*parameters - b)
             println("Iteration: "*string(iterations)*", error: ", round(top / bottom; digits=7))
         end
         if jc push!(jc_e, top/bottom)
         else push!(gs_e, top/bottom) end
+        # solution did not converge
         if isnan(top / bottom) break end
     end
     norm_e = top / bottom
@@ -121,7 +121,7 @@ function solve(index, calculation_method="gs", verbose=true)
         println("Calculated error: ", round.(e; digits=7))
     end
     if ! verbose println("CALCULATED RESULT A*x: ", round.(A*parameters; digits=3)) end
-    println("Normative error: ", norm_e)
+    println("Normative error: ", norm_e, " in ", string(iterations), " iterations")
     println()
     return norm_e, iterations, jc_e, gs_e
 end
@@ -138,8 +138,12 @@ verbose = true
 # ||Ax_ - b|| / || b ||
 # iterations is number of iterations
 # jc_e, resp. gs_e, is a list of criterial function values for each iteration
-norm_e, iterations, jc_e, gs_e = solve(index, cm, verbose)
-
+# norm_e, iterations, jc_e, gs_e = solve(index, cm, verbose)
+for cm in calculation_method
+    for i in 1:3
+        norm_e, iterations, jc_e, gs_e = solve(i, cm, true)
+    end
+end
 
 
 ### REMOVE comment for making graphs

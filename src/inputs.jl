@@ -17,6 +17,7 @@ function gimme_gamma(index)
     where all values are -1, except for diagonal. Diagonal is
     one from [5, 2, 0.5] defined by index in parameter.
     =#
+#     for i in 1:10 println(parse(Float64, "10e-2")) end
     if !isa(index, Integer) || index < 1 || index > 3
         throw(DomainError(index, "Gamma can be only 5, 2, 0.5 with respective indices 1, 2, 3."))
     end
